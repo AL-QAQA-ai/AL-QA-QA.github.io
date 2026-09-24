@@ -8,19 +8,19 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: ⭐️ Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 📶 Setup Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: 📦 Install
+      - name: Install
         run: npm ci
 
-      - name: 🔧 Vérifie variables
+      - name: Verify variables
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
@@ -29,9 +29,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: echo "✅ Variables de config OK"
+        run: echo "Variables OK"
 
-      - name: 🏗️ Build Next.js
+      - name: Build Next.js
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
@@ -43,7 +43,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: npm run build
 
-      - name: 📡 Déploye sur GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -51,5 +51,5 @@ jobs:
           branch: gh-pages
           domain: AL-QAQA-ai.github.io
 
-      - name: Déploiement terminé
-        run: echo "Site deployed: https://AL-QAQA-ai.github.io/AL-QA-QA.github.io/"
+      - name: Done
+        run: echo "Site: https://AL-QAQA-ai.github.io/AL-QA-QA.github.io/"
