@@ -36,8 +36,8 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish: .next/static
-          branch: gh-pages
+          publish_dir: .next/static
+          publish_branch: gh-pages
 
       - name: Done
         run: echo done
