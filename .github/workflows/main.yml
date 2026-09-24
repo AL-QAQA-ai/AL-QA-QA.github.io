@@ -51,5 +51,5 @@ jobs:
           branch: gh-pages
           domain: AL-QAQA-ai.github.io
 
-      - name: ✅ Terminé
-        run: echo "🌐 Site : https://AL-QAQA-ai.github.io/AL-QA-QA.github.io/"
+      - name: Déploiement terminé
+        run: echo "Site deployed: https://AL-QAQA-ai.github.io/AL-QA-QA.github.io/"
