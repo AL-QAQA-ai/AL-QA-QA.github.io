@@ -1,8 +1,7 @@
 name: AL-QAQA AI - Deploy
 
-on:
-  push:
-    branches: [main]
+on: push
+  branches: [main]
 
 jobs:
   build-and-deploy:
@@ -10,46 +9,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
+        with: { node-version: '20', cache: 'npm' }
       - name: Install
         run: npm ci
-
-      - name: Verify variables
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: echo "Variables OK"
-
-      - name: Build Next.js
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Verify vars
+        env: {
+          DATABASE_URL: ${{ secrets.DATABASE_URL }},
+          DIRECT_URL: ${{ secrets.DIRECT_URL }},
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }},
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }},
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }},
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }},
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }},
+        }
+        run: echo "OK"
+      - name: Build
+        env: {
+          DATABASE_URL: ${{ secrets.DATABASE_URL }},
+          DIRECT_URL: ${{ secrets.DIRECT_URL }},
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }},
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }},
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }},
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }},
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }},
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }},
+        }
         run: npm run build
-
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish: .next/static
-          branch: gh-pages
-          domain: AL-QAQA-ai.github.io
-
+        with: {
+          github_token: ${{ secrets.GITHUB_TOKEN }},
+          publish: .next/static,
+          branch: gh-pages,
+          domain: AL-QAQA-ai.github.io,
+        }
       - name: Done
         run: echo "Site: https://AL-QAQA-ai.github.io/AL-QA-QA.github.io/"
