@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getSupabase } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,27 +20,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/callback/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          email,
-          password,
-          csrfToken: "",
-          callbackUrl: "/",
-          json: "true",
-        }),
+      const { error: authError } = await getSupabase().auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await res.json();
-      if (data?.url) {
-        router.push(data.url);
-      } else if (data?.error) {
+      if (authError) {
         setError("Invalid email or password");
-      } else {
-        router.push("/");
-        router.refresh();
+        return;
       }
+
+      router.push("/");
+      router.refresh();
     } catch {
       setError("Something went wrong");
     } finally {

@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import { Sidebar } from "./sidebar";
 import { CommandBar } from "@/components/chat/command-bar";
 import { ChatArea } from "@/components/chat/chat-area";
+import { runChat } from "@/lib/chat-client";
 import type { Message } from "@/types";
 
 const IMAGE_TRIGGERS = [
@@ -69,26 +70,38 @@ export function MainLayout() {
 
     // Sent image understanding (vision)
     if (imageDataUrl) {
-      const visionController = new AbortController();
-      abortRef.current = visionController;
+      abortRef.current = null;
       try {
-        const res = await fetch("/api/ai/vision", {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt: content,
-            image: imageDataUrl,
+            model: "gpt-4o-mini",
+            max_tokens: 1024,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text:
+                      content?.trim() ||
+                      "Describe this image in detail, in the language the user seems to use.",
+                  },
+                  { type: "image_url", image_url: { url: imageDataUrl } },
+                ],
+              },
+            ],
           }),
-          signal: visionController.signal,
         });
 
+        if (!res.ok) throw new Error("Vision failed");
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Vision failed");
 
         const assistantMessage: Message = {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: data.content,
+          content: data.choices?.[0]?.message?.content ?? "I could not analyze this image.",
           createdAt: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
@@ -97,41 +110,34 @@ export function MainLayout() {
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "Sorry, I could not analyze this image. / Désolé, impossible d'analyser cette image.",
+            "Vision requires an API key. / L'analyse d'image nécessite une clé API.",
           createdAt: new Date(),
         };
         setMessages((prev) => [...prev, errorMessage]);
       } finally {
         setIsLoading(false);
         setStreamingContent("");
-        abortRef.current = null;
       }
       return;
     }
 
     // Image generation on demand (FR / EN / AR + /image command), incl. 3D style
     if (isImageRequest(content)) {
-      const imageController = new AbortController();
-      abortRef.current = imageController;
+      abortRef.current = null;
       try {
         const basePrompt = extractImagePrompt(content);
         const want3D = is3DRequest(content);
         const prompt = want3D ? with3DStyle(basePrompt) : basePrompt;
-        const res = await fetch("/api/ai/image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-          signal: imageController.signal,
-        });
-
-        if (!res.ok) throw new Error("Image generation failed");
-        const data = await res.json();
+        const seed = Math.floor(Math.random() * 1_000_000);
+        const url =
+          `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+          `?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
 
         const caption = want3D ? `🎨 3D — ${basePrompt}` : `🎨 ${basePrompt}`;
         const assistantMessage: Message = {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `${caption}\n![${basePrompt}](${data.url})`,
+          content: `${caption}\n![${basePrompt}](${url})`,
           createdAt: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
@@ -140,14 +146,13 @@ export function MainLayout() {
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "Sorry, I could not generate the image. Please try again. / Désolé, impossible de générer l'image. Réessayez.",
+            "Sorry, I could not generate the image. / Désolé, impossible de générer l'image.",
           createdAt: new Date(),
         };
         setMessages((prev) => [...prev, errorMessage]);
       } finally {
         setIsLoading(false);
         setStreamingContent("");
-        abortRef.current = null;
       }
       return;
     }
@@ -156,48 +161,16 @@ export function MainLayout() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, stream: true }),
-        signal: controller.signal,
-      });
-
-      if (!res.ok) throw new Error("Failed to get response");
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No response body");
-
-      const decoder = new TextDecoder();
       let fullContent = "";
-      let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
-          const data = trimmed.slice(6);
-          if (data === "[DONE]") continue;
-
-          try {
-            const chunk = JSON.parse(data);
-            if (chunk.type === "text" && chunk.content) {
-              fullContent += chunk.content;
-              setStreamingContent(fullContent);
-            } else if (chunk.type === "error") {
-              fullContent = `Error: ${chunk.error}`;
-              setStreamingContent(fullContent);
-            }
-          } catch {
-            // skip
-          }
+      for await (const chunk of runChat([{ role: "user", content }])) {
+        if (controller.signal.aborted) break;
+        if (chunk.type === "text" && chunk.content) {
+          fullContent += chunk.content;
+          setStreamingContent(fullContent);
+        } else if (chunk.type === "error") {
+          fullContent = `Error: ${chunk.error}`;
+          setStreamingContent(fullContent);
         }
       }
 
@@ -205,14 +178,13 @@ export function MainLayout() {
         const assistantMessage: Message = {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: fullContent,
+          content: controller.signal.aborted ? fullContent + "\n\n*(stopped)*" : fullContent,
           createdAt: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        // User cancelled
         if (streamingContent) {
           const assistantMessage: Message = {
             id: crypto.randomUUID(),

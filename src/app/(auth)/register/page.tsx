@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getSupabase } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,16 +33,14 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, confirmPassword }),
+      const { error: authError } = await getSupabase().auth.signUp({
+        email,
+        password,
+        options: { data: { name } },
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Registration failed");
+      if (authError) {
+        setError(authError.message || "Registration failed");
         return;
       }
 
