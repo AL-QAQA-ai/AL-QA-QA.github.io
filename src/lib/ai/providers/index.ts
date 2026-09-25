@@ -2,8 +2,9 @@ import type { AIProvider, AIProviderConfig } from "../types";
 import { OpenAIProvider } from "./openai";
 import { AnthropicProvider } from "./anthropic";
 import { FallbackProvider } from "./fallback";
+import { PollinationsProvider } from "./pollinations";
 
-export type ProviderName = "openai" | "anthropic" | "fallback";
+export type ProviderName = "openai" | "anthropic" | "pollinations" | "fallback";
 
 const providers = new Map<string, AIProvider>();
 
@@ -41,8 +42,11 @@ export function getProvider(name?: ProviderName): AIProvider {
       provider = new AnthropicProvider(config);
       break;
     }
-    default:
+    case "fallback":
       provider = new FallbackProvider();
+      break;
+    default:
+      provider = new PollinationsProvider();
   }
 
   providers.set(providerName, provider);
@@ -52,7 +56,7 @@ export function getProvider(name?: ProviderName): AIProvider {
 function detectProvider(): ProviderName {
   if (getEnv("OPENAI_API_KEY")) return "openai";
   if (getEnv("ANTHROPIC_API_KEY")) return "anthropic";
-  return "fallback";
+  return "pollinations";
 }
 
 export function getActiveProvider(): AIProvider {
@@ -66,8 +70,9 @@ export function getAllProviders(): { name: string; configured: boolean }[] {
   return [
     { name: "openai", configured: !!openaiKey },
     { name: "anthropic", configured: !!anthropicKey },
+    { name: "pollinations", configured: true },
     { name: "fallback", configured: true },
   ];
 }
 
-export { FallbackProvider };
+export { FallbackProvider, PollinationsProvider };
