@@ -141,10 +141,13 @@ export function ChatMessage({ message, autoSpeak = false }: ChatMessageProps) {
     >
       <div
         className={cn(
-          "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden",
+          "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden transition-all",
           isUser
             ? "bg-blue-600"
-            : "bg-gradient-to-br from-amber-600 to-yellow-800 border border-amber-500/40"
+            : cn(
+                "bg-gradient-to-br from-amber-600 to-yellow-800 border border-amber-500/40",
+                speaking && "avatar-speaking"
+              )
         )}
       >
         {isUser ? (
@@ -178,7 +181,7 @@ export function ChatMessage({ message, autoSpeak = false }: ChatMessageProps) {
             </button>
           )}
         </div>
-        <div className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+        <div className="text-sm text-zinc-300 whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed">
           {renderContent(message.content)}
         </div>
       </div>

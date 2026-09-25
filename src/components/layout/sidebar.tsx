@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -31,7 +31,12 @@ const navigation = [
   { name: "Settings", href: "/settings/", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  open?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,37 +51,61 @@ export function Sidebar() {
     }
   }, []);
 
+  // Mobile: close drawer on Escape
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const handleNavigate = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
+
   const filteredConversations = recentConversations.filter((c) =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
+  const panel = (
     <aside
       className={cn(
-        "flex flex-col h-full bg-zinc-950 border-r border-zinc-800 transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        "flex flex-col h-full bg-zinc-950 border-r border-zinc-800 transition-all duration-300 w-64",
+        collapsed && "md:w-16"
       )}
     >
       <div className="flex items-center justify-between p-4 border-b border-zinc-800">
         {!collapsed && (
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" onClick={handleNavigate} className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">Q</span>
             </div>
             <span className="text-white font-semibold text-sm">AL-QAQA AI</span>
           </Link>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-1 rounded hover:bg-zinc-800 text-zinc-400"
-        >
-          <ChevronLeft
-            className={cn(
-              "w-4 h-4 transition-transform",
-              collapsed && "rotate-180"
-            )}
-          />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden md:block p-1 rounded hover:bg-zinc-800 text-zinc-400"
+            title={collapsed ? "Expand menu" : "Collapse menu"}
+          >
+            <ChevronLeft
+              className={cn(
+                "w-4 h-4 transition-transform",
+                collapsed && "rotate-180"
+              )}
+            />
+          </button>
+          <button
+            onClick={onClose}
+            className="md:hidden p-1 rounded hover:bg-zinc-800 text-zinc-400"
+            title="Close menu"
+          >
+            <ChevronLeft className="w-4 h-4 rotate-180" />
+          </button>
+        </div>
       </div>
 
       {!collapsed && (
@@ -101,6 +130,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={handleNavigate}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                 isActive
@@ -125,7 +155,8 @@ export function Sidebar() {
           {filteredConversations.slice(0, 5).map((conv) => (
             <Link
               key={conv.id}
-              href={`/chat/${conv.id}`}
+              href="/"
+              onClick={handleNavigate}
               className="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 truncate"
             >
               <MessageSquare className="w-4 h-4 flex-shrink-0" />
@@ -138,6 +169,7 @@ export function Sidebar() {
       <div className="border-t border-zinc-800 p-2">
         <Link
           href="/login"
+          onClick={handleNavigate}
           className={cn(
             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900",
             collapsed && "justify-center"
@@ -149,5 +181,34 @@ export function Sidebar() {
         </Link>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop: static sidebar */}
+      <div className="hidden md:flex h-full">{panel}</div>
+
+      {/* Mobile: overlay drawer */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 md:hidden transition-opacity duration-300",
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        aria-hidden={!open}
+      >
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 h-full shadow-2xl transition-transform duration-300 ease-out",
+            open ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          {panel}
+        </div>
+      </div>
+    </>
   );
 }

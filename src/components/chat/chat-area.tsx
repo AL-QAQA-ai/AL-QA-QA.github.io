@@ -26,7 +26,7 @@ export function ChatArea({ messages, isLoading, autoSpeak = false }: ChatAreaPro
           <img
             src={KNIGHT_IMAGE_URL}
             alt="Al-Qa'qa' — historical Arab knight with his sword on his Arabian horse"
-            className="w-48 h-48 mx-auto mb-4 rounded-2xl object-cover border-2 border-amber-500/50 shadow-lg shadow-amber-900/40"
+            className="knight-animated w-44 h-44 sm:w-48 sm:h-48 mx-auto mb-4 rounded-2xl object-cover border-2 border-amber-500/50"
           />
           <h2 className="text-xl font-semibold text-zinc-100 mb-2">
             Al-Qa&apos;qa&apos; ⚔️

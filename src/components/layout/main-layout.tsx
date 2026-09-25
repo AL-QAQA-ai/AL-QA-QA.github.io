@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Menu, X } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { CommandBar } from "@/components/chat/command-bar";
 import { ChatArea } from "@/components/chat/chat-area";
@@ -47,7 +48,29 @@ export function MainLayout() {
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [autoSpeak, setAutoSpeak] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Voice ON by default (persisted): the knight answers aloud after the first tap.
+  useEffect(() => {
+    const stored = localStorage.getItem("autoSpeak");
+    if (stored === null) {
+      setAutoSpeak(true);
+    } else {
+      setAutoSpeak(stored === "true");
+    }
+  }, []);
+
+  const toggleAutoSpeak = useCallback(() => {
+    setAutoSpeak((v) => {
+      const next = !v;
+      localStorage.setItem("autoSpeak", String(next));
+      if (!next && typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      return next;
+    });
+  }, []);
 
   const handleSend = useCallback(async (content: string, imageDataUrl?: string) => {
     const userContent =
@@ -226,9 +249,26 @@ export function MainLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100">
-      <Sidebar />
+    <div className="flex h-[100dvh] bg-zinc-950 text-zinc-100 overflow-hidden">
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
       <main className="flex-1 flex flex-col min-w-0">
+        <header className="md:hidden flex items-center gap-3 px-3 py-2 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur shrink-0">
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="p-2 rounded-lg text-zinc-300 hover:bg-zinc-800 active:bg-zinc-700 transition-colors"
+            title="Open menu"
+            aria-label="Open menu"
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">Q</span>
+            </div>
+            <span className="text-white font-semibold text-sm">AL-QAQA AI</span>
+          </div>
+        </header>
+
         <ChatArea
           messages={displayMessages}
           isLoading={isLoading && !streamingContent}
@@ -240,12 +280,7 @@ export function MainLayout() {
           isStreaming={isLoading}
           onCancel={handleCancel}
           autoSpeak={autoSpeak}
-          onToggleAutoSpeak={() => {
-            if (autoSpeak && typeof window !== "undefined" && "speechSynthesis" in window) {
-              window.speechSynthesis.cancel();
-            }
-            setAutoSpeak((v) => !v);
-          }}
+          onToggleAutoSpeak={toggleAutoSpeak}
         />
       </main>
     </div>
