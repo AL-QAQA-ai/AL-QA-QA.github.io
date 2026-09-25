@@ -7,12 +7,29 @@ import {
   MessageSquare,
   Plus,
   Search,
+  Folder,
+  FileText,
+  CheckSquare,
+  Image,
+  Video,
+  BarChart3,
+  Settings,
   ChevronLeft,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navigation = [{ name: "New Chat", href: "/", icon: Plus }];
+const navigation = [
+  { name: "New Chat", href: "/", icon: Plus },
+  { name: "Conversations", href: "/conversations/", icon: MessageSquare },
+  { name: "Projects", href: "/projects/", icon: Folder },
+  { name: "Files", href: "/files/", icon: FileText },
+  { name: "Tasks", href: "/tasks/", icon: CheckSquare },
+  { name: "Images", href: "/images/", icon: Image },
+  { name: "Videos", href: "/videos/", icon: Video },
+  { name: "Analytics", href: "/analytics/", icon: BarChart3 },
+  { name: "Settings", href: "/settings/", icon: Settings },
+];
 
 export function Sidebar() {
   const pathname = usePathname();
